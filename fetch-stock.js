@@ -1,5 +1,4 @@
 var moment = require('moment');
-var talib = require('talib');
 var async = require('async');
 
 var MongoAdapter = require('./adapters/MongoAdapter.js')
