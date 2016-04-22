@@ -6,7 +6,6 @@ var dbConfig = require('./config/dbConfig.js');
 
 var Stock = require('./stock.js');
 var symbolList = require('./stock-list.json').symbol;
-// symbolList = ['AAV'];
 MongoAdapter.InitDB(dbConfig, function(err, db){
   startWork();
 });
@@ -34,62 +33,63 @@ function startWork(){
 }
 
 function insertToDB(symbolTickArray){
-    var tick1dCollection = require('./collections/Tick1dCollection.js');
+  var tick1dCollection = require('./collections/Tick1dCollection.js');
 
-    var count = 0;
-    var max = symbolTickArray.length;
+  var count = 0;
+  var max = symbolTickArray.length;
 
-    var batchSize = 100;
-    var nGroup = max/batchSize;
-    var array = [];
-    for (var i = 0; i < nGroup; i++) {
-      array.push(symbolTickArray.slice(i*batchSize, (i+1)*batchSize));
-    }
-    async.eachSeries(array, function insert(batch, callback){
-      tick1dCollection.insert(batch , function(err,result) {
-        if (err) callback(err);
-        else {
-          count += result.insertedCount;
-          console.log('add: ' + count + '/' + max);
-          callback();
-        }
-      })
-    }, function(err){
-      console.log('DONE');
+  var batchSize = 100;
+  var nGroup = max/batchSize;
+  var array = [];
+  for (var i = 0; i < nGroup; i++) {
+    array.push(symbolTickArray.slice(i*batchSize, (i+1)*batchSize));
+  }
+
+  // async.eachSeries(array, function insert(batch, callback){
+  //   tick1dCollection.insert(batch , function(err,result) {
+  //     if (err) callback(err);
+  //     else {
+  //       count += result.insertedCount;
+  //       console.log('add: ' + count + '/' + max);
+  //       callback();
+  //     }
+  //   })
+  // }, function(err){
+  //   console.log('DONE');
+  // });
+
+  async.eachSeries(symbolTickArray, function insert(tick, callback){
+    if (tick.volume === 0) return callback();
+    tick1dCollection.find({ 'symbol': tick.symbol, 'date': tick.date }).count(function(err, found){
+
+      if (found !== 0){
+        console.log('found: ' + ++count + '/' + max);
+        callback();
+      }
+      else {
+        console.log('add: ' + ++count + '/' + max);
+        // console.log('insert');
+        // console.log(tick);
+        insert(tick);
+      }
     });
+  }, function(err){
+    if (err) {
+      console.log('Insert Fail:', err);
+    }
+    else{
+      console.log('Insert Done');
+      console.log(moment().utcOffset('+0700').format());
+    }
+    process.exit(1);
+  });
 
-    // async.eachSeries(symbolTickArray, function insert(tick, callback){
-      // var utc = moment(tick.time);
-      // var date = utc.utcOffset('+0700').format('YYYY-MM-DD');
-      // tick.date = date;
-    //   tick1dCollection.find({ 'symbol': tick.symbol, 'date': tick.date }).count(function(err, found){
-    //
-    //     if (found !== 0){
-    //       console.log('found: ' + ++count + '/' + max);
-    //       callback();
-    //     }
-    //     else {
-    //       tick1dCollection.insert([ tick ], function(err,result) {
-    //         if (err) callback(err);
-    //         else {
-    //           console.log('add: ' + ++count + '/' + max);
-    //           callback();
-    //         }
-    //       })
-    //     }
-    //   });
-    // }, function(err){
-    //   if (err) {
-    //     console.log('Insert Fail:', err);
-    //   }
-    //   else{
-    //     console.log('Insert Done');
-    //     console.log(moment().utcOffset('+0700').format());
-    //   }
-    //   process.exit(1);
-    // });
-
+  function insert(tick){
+    tick1dCollection.insert([ tick ], function(err,result) {
+    })
+  }
 }
+
 
 function getTickData(symbol, callback){
   Stock.getTicks(symbol, '2d', function(array){

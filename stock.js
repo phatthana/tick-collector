@@ -5,19 +5,19 @@ var moment = require('moment');
 
 function getTicks(symbol, size, callback){
 
-  investorz.getStockHistory(symbol, size, function(err, result){
-    var tickDataArray = expandData(result, symbol);
-    console.log(symbol + ': ' + tickDataArray.length);
-    callback(tickDataArray);
-  });
-
-  // googleFinance.getStockHistory(symbol, 50, function(err, result){
-  //   if (!err){
-  //     var tickDataArray = convertToTickData(result, symbol);
-  //     console.log(symbol + ': ' + tickDataArray.length);
-  //     callback(tickDataArray);
-  //   }
+  // investorz.getStockHistory(symbol.replace('&', '%26'), size, function(err, result){
+  //   var tickDataArray = expandData(result, symbol);
+  //   console.log(symbol + ': ' + tickDataArray.length);
+  //   callback(tickDataArray);
   // });
+
+  googleFinance.getStockHistory(symbol, size, function(err, result){
+    if (!err){
+      var tickDataArray = convertToTickData(result, symbol);
+      console.log(symbol + ': ' + tickDataArray.length);
+      callback(tickDataArray);
+    }
+  });
 }
 
 function convertTickToArray(tickArray){
@@ -79,6 +79,7 @@ function expandData(text, symbol){
 function convertToTickData(text, symbol){
   var array = text.split('\n');
   var tickArray = array.slice(8,array.length-1);
+  if (tickArray.length === 0) return [];
   var colName = array[4].split('=')[1];
   var intervalRow = array[3];
   var columnArray = colName.split(',');
@@ -109,7 +110,7 @@ function convertToTickData(text, symbol){
     var tickData = { 'time': tradeTime , 'symbol': symbol};
     for (var j = 1; j < columnArray.length; j++) {
       var columnName = columnArray[j];
-      tickData[columnName.toLowerCase()] = tickComponent[j];
+      tickData[columnName.toLowerCase()] = Number(tickComponent[j]);
     }
     // console.log(tickData);
     results.push(tickData);
