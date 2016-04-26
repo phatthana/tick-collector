@@ -67,10 +67,10 @@ function insertToDB(symbolTickArray){
         callback();
       }
       else {
-        console.log('add: ' + ++count + '/' + max);
-        // console.log('insert');
-        // console.log(tick);
-        insert(tick);
+        tick1dCollection.insert([ tick ], function(err,result) {
+          console.log('add: ' + ++count + '/' + max);
+          callback();
+        })
       }
     });
   }, function(err){
@@ -83,16 +83,12 @@ function insertToDB(symbolTickArray){
     }
     process.exit(1);
   });
-
-  function insert(tick){
-    tick1dCollection.insert([ tick ], function(err,result) {
-    })
-  }
 }
 
 
 function getTickData(symbol, callback){
-  Stock.getTicks(symbol, '2d', function(array){
+  var size = process.env.SIZE || '2d';
+  Stock.getTicks(symbol, size, function(array){
     if (array.length == 0) return callback(null, []);
     callback(null, array);
   });
